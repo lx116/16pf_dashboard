@@ -1,8 +1,8 @@
 'use client';
 
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import {Scatter} from 'react-chartjs-2';
+import { Scatter } from 'react-chartjs-2';
 import {
     Chart as ChartJS,
     LinearScale,
@@ -10,22 +10,36 @@ import {
     Tooltip,
     Legend
 } from 'chart.js';
-import {Form, Spinner, Alert} from 'react-bootstrap';
+import { Form, Spinner, Alert } from 'react-bootstrap';
 
 ChartJS.register(LinearScale, PointElement, Tooltip, Legend);
 
-export default function CategorizationScatterRespondentChart({highlightedId}) {
+// 🔹 Mapa de categorizaciones
+const CATEGORY_LABELS = {
+    An: "An: Baja Ansiedad - Alta Ansiedad",
+    Ex: "Ex: Introversión - Extraversión",
+    So: "So: Bajo Control Social - Alto Control Social",
+    In: "In: Dependencia - Independencia",
+    Ob: "Ob: Objetividad - Subjetividad",
+    Cr: "Cr: Creatividad Baja - Creatividad Alta",
+    Ne: "Ne: Bajo Neuroticismo - Alto Neuroticismo",
+    Ps: "Ps: Bajo Aislamiento - Alto Aislamiento",
+    Li: "Li: Bajo Liderazgo - Alto Liderazgo",
+    Ac: "Ac: Propenso a Accidentes - Libre de Accidentes"
+};
+
+export default function CategorizationScatterRespondentChart({ highlightedId }) {
     const [data, setData] = useState(null);
     const [category1, setCategory1] = useState('');
     const [category2, setCategory2] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    const validFactors = ['An', 'Ex', 'So', 'In', 'Ob', 'Cr', 'Ne', 'Ps', 'Li', 'Ac'];
+    const validFactors = Object.keys(CATEGORY_LABELS);
 
     const fetchData = async () => {
         if (!category1 || !category2) {
-            setError('Por favor selecciona ambos factores.');
+            setError('Por favor selecciona ambas categorizaciones.');
             return;
         }
 
@@ -33,12 +47,15 @@ export default function CategorizationScatterRespondentChart({highlightedId}) {
         setError('');
 
         try {
-            const response = await axios.get(`http://localhost:8000/api/categorization-filter/`, {
-                params: {category1, category2},
-            });
+            const response = await axios.get(
+                'http://localhost:8000/api/categorization-filter/',
+                {
+                    params: { category1, category2 },
+                }
+            );
             setData(response.data);
         } catch (err) {
-            setError('Error al cargar los datos. Por favor verifica los factores seleccionados.');
+            setError('Error al cargar los datos. Por favor verifica las categorizaciones seleccionadas.');
         } finally {
             setLoading(false);
         }
@@ -51,11 +68,11 @@ export default function CategorizationScatterRespondentChart({highlightedId}) {
     const scatterData = {
         datasets: [
             {
-                label: `${category1} vs ${category2}`,
+                label: `${CATEGORY_LABELS[category1]} vs ${CATEGORY_LABELS[category2]}`,
                 data: data
                     ? data
-                        .filter((item) => item.annotated_respondent_id !== parseInt(highlightedId))
-                        .map((item) => ({
+                        .filter(item => item.annotated_respondent_id !== parseInt(highlightedId))
+                        .map(item => ({
                             x: item.category1,
                             y: item.category2,
                             name: item.respondent_name,
@@ -64,13 +81,13 @@ export default function CategorizationScatterRespondentChart({highlightedId}) {
                     : [],
                 pointBackgroundColor: data
                     ? data
-                        .filter((item) => item.annotated_respondent_id !== parseInt(highlightedId))
-                        .map((item) =>
+                        .filter(item => item.annotated_respondent_id !== parseInt(highlightedId))
+                        .map(item =>
                             item.respondent_name === 'sujeto_estudio_desertor'
-                                ? 'rgba(255, 0, 0, 0.6)' // Rojo
+                                ? 'rgba(255, 0, 0, 0.6)'
                                 : item.respondent_name === 'sujeto_estudio_casi_desertor'
-                                    ? 'rgba(255, 255, 0, 0.6)' // Amarillo
-                                    : 'rgba(75, 192, 192, 0.6)' // Verde claro
+                                    ? 'rgba(255, 255, 0, 0.6)'
+                                    : 'rgba(75, 192, 192, 0.6)'
                         )
                     : [],
                 pointRadius: 8,
@@ -79,18 +96,18 @@ export default function CategorizationScatterRespondentChart({highlightedId}) {
                 label: 'Usuario destacado',
                 data: data
                     ? data
-                        .filter((item) => item.annotated_respondent_id === parseInt(highlightedId))
-                        .map((item) => ({
+                        .filter(item => item.annotated_respondent_id === parseInt(highlightedId))
+                        .map(item => ({
                             x: item.category1,
                             y: item.category2,
                             name: item.respondent_name,
                             id: item.annotated_respondent_id,
                         }))
                     : [],
-                pointBackgroundColor: 'rgb(0,255,216)', // Azul intenso
-                pointBorderColor: 'black', // Borde negro
+                pointBackgroundColor: 'rgb(0,255,216)',
+                pointBorderColor: 'black',
                 pointBorderWidth: 3,
-                pointRadius: 10, // Radio mayor
+                pointRadius: 10,
             },
         ],
     };
@@ -102,7 +119,9 @@ export default function CategorizationScatterRespondentChart({highlightedId}) {
                     <span className="visually-hidden">Cargando...</span>
                 </Spinner>
             )}
+
             {error && <Alert variant="danger">{error}</Alert>}
+
             <Scatter
                 data={scatterData}
                 options={{
@@ -114,8 +133,8 @@ export default function CategorizationScatterRespondentChart({highlightedId}) {
                         tooltip: {
                             callbacks: {
                                 label: (context) => {
-                                    const {raw} = context;
-                                    return `(${raw.x}, ${raw.y}) - ${raw.name} (ID: ${raw.id})`;
+                                    const { raw } = context;
+                                    return `(${raw.x}, ${raw.y}) — ${raw.name} (ID: ${raw.id})`;
                                 },
                             },
                         },
@@ -124,24 +143,23 @@ export default function CategorizationScatterRespondentChart({highlightedId}) {
                         x: {
                             title: {
                                 display: true,
-                                text: category1,
+                                text: CATEGORY_LABELS[category1],
                             },
-                            beginAtZero: true,
                             min: 0,
                             max: 10,
                         },
                         y: {
                             title: {
                                 display: true,
-                                text: category2,
+                                text: CATEGORY_LABELS[category2],
                             },
-                            beginAtZero: true,
                             min: 0,
                             max: 10,
                         },
                     },
                 }}
             />
+
             <Form className="mb-4">
                 <div className="d-flex justify-content-between">
                     <Form.Group className="col-5">
@@ -151,9 +169,9 @@ export default function CategorizationScatterRespondentChart({highlightedId}) {
                             onChange={(e) => setCategory1(e.target.value)}
                         >
                             <option value="">-- Selecciona una categorización --</option>
-                            {validFactors.map((factor) => (
+                            {validFactors.map(factor => (
                                 <option key={factor} value={factor}>
-                                    {factor}
+                                    {CATEGORY_LABELS[factor]}
                                 </option>
                             ))}
                         </Form.Select>
@@ -166,9 +184,9 @@ export default function CategorizationScatterRespondentChart({highlightedId}) {
                             onChange={(e) => setCategory2(e.target.value)}
                         >
                             <option value="">-- Selecciona una categorización --</option>
-                            {validFactors.map((factor) => (
+                            {validFactors.map(factor => (
                                 <option key={factor} value={factor}>
-                                    {factor}
+                                    {CATEGORY_LABELS[factor]}
                                 </option>
                             ))}
                         </Form.Select>

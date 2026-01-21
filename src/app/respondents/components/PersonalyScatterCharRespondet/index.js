@@ -1,8 +1,8 @@
 'use client';
 
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import {Scatter} from 'react-chartjs-2';
+import { Scatter } from 'react-chartjs-2';
 import {
     Chart as ChartJS,
     LinearScale,
@@ -10,18 +10,38 @@ import {
     Tooltip,
     Legend,
 } from 'chart.js';
-import {Form, Spinner, Alert} from 'react-bootstrap';
+import { Form, Spinner, Alert } from 'react-bootstrap';
 
 ChartJS.register(LinearScale, PointElement, Tooltip, Legend);
 
-export default function PersonalityScatterRespondentChart({highlightedId}) {
+// 🔹 Mapa de factores
+const FACTOR_LABELS = {
+    A: "A: Reservado - Abierto",
+    B: "B: Concreto - Abstracto",
+    C: "C: Inestabilidad Emocional - Estabilidad Emocional",
+    E: "E: Sumiso - Dominante",
+    F: "F: Prudente - Impulsivo",
+    G: "G: Despreocupado - Escrupuloso",
+    H: "H: Tímido - Espontáneo",
+    I: "I: Racional - Emocional",
+    L: "L: Confiado - Suspicaz",
+    M: "M: Práctico - Soñador",
+    N: "N: Sencillo - Astuto",
+    O: "O: Seguro - Inseguro",
+    Q1: "Q1:Tradicionalista - Innovador",
+    Q2: "Q2: Dependencia del Grupo - Autosuficiencia",
+    Q3: "Q3: Desinhibido - Controlado",
+    Q4: "Q4: Tranquilo - Tensionado"
+};
+
+export default function PersonalityScatterRespondentChart({ highlightedId }) {
     const [data, setData] = useState(null);
     const [factor1, setFactor1] = useState('');
     const [factor2, setFactor2] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    const validFactors = ['A', 'B', 'C', 'E', 'F', 'G', 'H', 'I', 'L', 'M', 'N', 'O', 'Q1', 'Q2', 'Q3', 'Q4'];
+    const validFactors = Object.keys(FACTOR_LABELS);
 
     const fetchData = async () => {
         if (!factor1 || !factor2) {
@@ -31,10 +51,14 @@ export default function PersonalityScatterRespondentChart({highlightedId}) {
 
         setLoading(true);
         setError('');
+
         try {
-            const response = await axios.get(`http://localhost:8000/api/personality-factors-filter/`, {
-                params: {factor1, factor2},
-            });
+            const response = await axios.get(
+                'http://localhost:8000/api/personality-factors-filter/',
+                {
+                    params: { factor1, factor2 },
+                }
+            );
             setData(response.data);
         } catch (err) {
             setError('Error al cargar los datos. Por favor verifica los factores seleccionados.');
@@ -44,18 +68,17 @@ export default function PersonalityScatterRespondentChart({highlightedId}) {
     };
 
     useEffect(() => {
-        console.log(data)
         if (factor1 && factor2) fetchData();
     }, [factor1, factor2]);
 
     const scatterData = {
         datasets: [
             {
-                label: `${factor1} vs ${factor2}`,
+                label: `${FACTOR_LABELS[factor1]} vs ${FACTOR_LABELS[factor2]}`,
                 data: data
                     ? data
-                        .filter((item) => item.annotated_respondent_id !== parseInt(highlightedId))
-                        .map((item) => ({
+                        .filter(item => item.annotated_respondent_id !== parseInt(highlightedId))
+                        .map(item => ({
                             x: item.factor1,
                             y: item.factor2,
                             name: item.respondent_name,
@@ -64,13 +87,13 @@ export default function PersonalityScatterRespondentChart({highlightedId}) {
                     : [],
                 pointBackgroundColor: data
                     ? data
-                        .filter((item) => item.annotated_respondent_id !== parseInt(highlightedId))
-                        .map((item) =>
+                        .filter(item => item.annotated_respondent_id !== parseInt(highlightedId))
+                        .map(item =>
                             item.respondent_name === 'sujeto_estudio_desertor'
-                                ? 'rgba(255, 0, 0, 0.6)' // Rojo
+                                ? 'rgba(255, 0, 0, 0.6)'
                                 : item.respondent_name === 'sujeto_estudio_casi_desertor'
-                                    ? 'rgba(255, 255, 0, 0.6)' // Amarillo
-                                    : 'rgba(75, 192, 192, 0.4)' // Verde claro
+                                    ? 'rgba(255, 255, 0, 0.6)'
+                                    : 'rgba(75, 192, 192, 0.4)'
                         )
                     : [],
                 pointRadius: 10,
@@ -79,22 +102,21 @@ export default function PersonalityScatterRespondentChart({highlightedId}) {
                 label: 'Sujeto destacado',
                 data: data
                     ? data
-                        .filter((item) => item.annotated_respondent_id === parseInt(highlightedId))
-                        .map((item) => ({
+                        .filter(item => item.annotated_respondent_id === parseInt(highlightedId))
+                        .map(item => ({
                             x: item.factor1,
                             y: item.factor2,
                             name: `Sujeto destacado: ${item.respondent_name}`,
                             id: item.annotated_respondent_id,
                         }))
                     : [],
-                pointBackgroundColor: 'rgb(255,175,0)', // Azul intenso
-                pointBorderColor: 'black', // Borde negro para destacar más
+                pointBackgroundColor: 'rgb(255,175,0)',
+                pointBorderColor: 'black',
                 pointBorderWidth: 1,
-                pointRadius: 15, // Radio mayor para destacarlo
+                pointRadius: 15,
             },
         ],
     };
-
 
     return (
         <div>
@@ -103,7 +125,9 @@ export default function PersonalityScatterRespondentChart({highlightedId}) {
                     <span className="visually-hidden">Cargando...</span>
                 </Spinner>
             )}
+
             {error && <Alert variant="danger">{error}</Alert>}
+
             <Scatter
                 data={scatterData}
                 options={{
@@ -115,8 +139,8 @@ export default function PersonalityScatterRespondentChart({highlightedId}) {
                         tooltip: {
                             callbacks: {
                                 label: (context) => {
-                                    const {raw} = context;
-                                    return `(${raw.x}, ${raw.y}) - ${raw.name} (ID: ${raw.id})`;
+                                    const { raw } = context;
+                                    return `(${raw.x}, ${raw.y}) — ${raw.name} (ID: ${raw.id})`;
                                 },
                             },
                         },
@@ -125,24 +149,23 @@ export default function PersonalityScatterRespondentChart({highlightedId}) {
                         x: {
                             title: {
                                 display: true,
-                                text: factor1,
+                                text: FACTOR_LABELS[factor1],
                             },
-                            beginAtZero: true,
                             min: 0,
                             max: 10,
                         },
                         y: {
                             title: {
                                 display: true,
-                                text: factor2,
+                                text: FACTOR_LABELS[factor2],
                             },
-                            beginAtZero: true,
                             min: 0,
                             max: 10,
                         },
                     },
                 }}
             />
+
             <Form className="mb-4">
                 <div className="d-flex justify-content-between">
                     <Form.Group className="col-5">
@@ -152,9 +175,9 @@ export default function PersonalityScatterRespondentChart({highlightedId}) {
                             onChange={(e) => setFactor1(e.target.value)}
                         >
                             <option value="">-- Selecciona un factor --</option>
-                            {validFactors.map((factor) => (
+                            {validFactors.map(factor => (
                                 <option key={factor} value={factor}>
-                                    {factor}
+                                    {FACTOR_LABELS[factor]}
                                 </option>
                             ))}
                         </Form.Select>
@@ -167,9 +190,9 @@ export default function PersonalityScatterRespondentChart({highlightedId}) {
                             onChange={(e) => setFactor2(e.target.value)}
                         >
                             <option value="">-- Selecciona un factor --</option>
-                            {validFactors.map((factor) => (
+                            {validFactors.map(factor => (
                                 <option key={factor} value={factor}>
-                                    {factor}
+                                    {FACTOR_LABELS[factor]}
                                 </option>
                             ))}
                         </Form.Select>
